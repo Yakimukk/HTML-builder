@@ -11,7 +11,7 @@ fs.readdir(folder, {withFileTypes: true}, (err, files) => {
             const name = file.name.split('.')[0]
             fs.stat(folderFile, (err, stats) => {
                 const size = `${(stats.size/1024).toFixed(3)}kb`
-            console.log(`${name} - ${extension} - ${size}`)
+                console.log(`${name} - ${extension} - ${size}`)
             })
         }
     }
