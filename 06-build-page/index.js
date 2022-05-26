@@ -11,11 +11,6 @@ const pathStyle = path.join(__dirname, 'project-dist', 'style.css')
 const styles = path.join(__dirname, 'styles')
 
 
-//Создаём папку project-dist
-
-fs.mkdir(path.join(projectDist), { recursive: true }, (err) => {
-    if (err) throw err
-})
 
 //Собираем в единый файл стили из папки styles и помещаем их в файл project-dist/style.css
 
