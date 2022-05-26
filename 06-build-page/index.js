@@ -5,14 +5,10 @@ const fsPromises = fs.promises
 const projectDist = path.join(__dirname, 'project-dist')
 const assets = path.join(__dirname, 'assets')
 const assetsCopy = path.join(projectDist, 'assets')
-
-/*
-Дорогой проверяющий, 
-я не успела доделать 6 задание к дедлайну, 
-если есть такая возможность, 
-не могли бы вы проверить/перепроверить задание позже
-Спасибо!
-*/
+const components = path.join(__dirname, 'components')
+const pathToTemplate = path.join(__dirname, 'template.html')
+const pathStyle = path.join(__dirname, 'project-dist', 'style.css')
+const styles = path.join(__dirname, 'styles')
 
 
 //Создаём папку project-dist
@@ -23,8 +19,6 @@ fs.mkdir(path.join(projectDist), { recursive: true }, (err) => {
 
 //Собираем в единый файл стили из папки styles и помещаем их в файл project-dist/style.css
 
-const pathStyle = path.join(__dirname, 'project-dist', 'style.css')
-const styles = path.join(__dirname, 'styles')
 
 function unionCSS() {
     fs.readdir(styles, {withFileTypes: true}, (err, files) => {
@@ -49,30 +43,57 @@ function unionCSS() {
 
 //Копируем папку assets в project-dist/assets
 
-function copyAssets(assetsCopy, assets) {
-    fsPromises.mkdir(assetsCopy, {recursive: true}).then().catch()
-    fs.readdir(assets, {withFileTypes: true}, (err, files) => {
-        for (const file of files) {
-            const pathFile = path.join(assets, file.name)
-            const pathFileTwo = path.join(assetsCopy, file.name)
-            if (file.isDirectory()) {
-                fsPromises.mkdir(pathFileTwo, { recursive: true })
-                copyAssets(pathFile, pathFileTwo)
-                console.log('yes')
-            } else if (file.isFile()) {
-                fsPromises.copyFile(pathFile, pathFileTwo)
+function copyAssets(assetsFolder, assetsFolderInit) {
+    fsPromises.mkdir(assetsFolder, {recursive: true}).then().catch()
+    fs.readdir(assetsFolderInit, {withFileTypes: true}, (err, list) => {
+        if (err) throw err
+        for (let file of list) {
+            const pathFile = path.join(assetsFolderInit, file.name)
+            const pathFileTwo = path.join(assetsFolder, file.name)
+            if (file.isFile()) {
+                fsPromises.copyFile(pathFile, pathFileTwo).then().catch()
+                continue
             }
+            if (file.isDirectory()) {
+                copyAssets(path.join(assetsFolder, file.name), path.join(assetsFolderInit, file.name))
+                continue
+            } 
         }
     })
     //console.log('yes')
 }
 
+let data = ''
+
+const stream = fs.createReadStream(pathToTemplate, 'utf8')
+stream.on('data', chunk => data += chunk)
 
 fs.rm(projectDist, {recursive: true, force: true}, () => {
     fs.mkdir(projectDist, {recursive: true}, () => {
-        fs.mkdir(assetsCopy, {recursive: true}, () => {
-            copyAssets(assetsCopy, assets)
+      fs.mkdir(assetsCopy, {recursive: true}, () => {
+        copyAssets(assetsCopy, assets)
+      })
+      unionCSS()
+    })
+})
+
+stream.on('end', () => {
+    let template = data
+    fs.readdir(components, (err, list) => {
+        if (err) throw err
+        list.forEach(item => {
+            let newPath = path.join(components, item)
+            const ext = path.extname(newPath)
+            if (ext === '.html') {
+                fs.readFile(newPath, (err, data) => {
+                    if (err) throw err
+                    const re = new RegExp(`{{${item.slice(0, -5)}}}`)
+                    template = template.replace(re, data.toString())
+                    fs.writeFile(path.join(projectDist, 'index.html'), template, (err) => {
+                        if (err) throw err
+                    })
+                })
+            }
         })
-        unionCSS()
     })
 })
